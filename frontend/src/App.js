@@ -1,53 +1,83 @@
-import { useEffect } from "react";
+import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { AuthProvider } from "@/context/AuthContext";
+import Header from "@/components/Header";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import PublicRepository from "@/pages/PublicRepository";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import StudentDashboard from "@/pages/StudentDashboard";
+import ThesisForm from "@/pages/ThesisForm";
+import SupervisorDashboard from "@/pages/SupervisorDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
+function Shell() {
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+    <>
+      <Header />
+      <Routes>
+        <Route path="/" element={<PublicRepository />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute roles={["student"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/new"
+          element={
+            <ProtectedRoute roles={["student"]}>
+              <ThesisForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/edit/:id"
+          element={
+            <ProtectedRoute roles={["student"]}>
+              <ThesisForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supervisor"
+          element={
+            <ProtectedRoute roles={["supervisor", "admin"]}>
+              <SupervisorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<PublicRepository />} />
+      </Routes>
+      <footer className="border-t mt-16 py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
+        <p className="font-mono-plex text-[11px] uppercase tracking-[0.3em] text-neutral-500">
+          ThesisVault · The Modern Archive · {new Date().getFullYear()}
+        </p>
+      </footer>
+    </>
   );
-};
+}
 
 function App() {
   return (
-    <div className="App">
+    <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <Shell />
       </BrowserRouter>
-    </div>
+    </AuthProvider>
   );
 }
 

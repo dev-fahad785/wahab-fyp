@@ -1,0 +1,148 @@
+{
+  "theme_and_archetype": {
+    "domain": "Education / Academic Institutional SaaS",
+    "theme": "Light Theme",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) adapted into 'Editorial Future'",
+    "vibe": "The Modern Archive - Trustworthy, scholarly, refined, and highly legible. Relies on sharp typography, paper-like backgrounds, and distinct borders rather than soft shadows or generic gradients."
+  },
+  "typography": {
+    "pairing_strategy": "Editorial Future (Classic Serif Headings + Geometric Sans Body)",
+    "fonts": {
+      "headings": {
+        "family": "Cormorant Garamond, serif",
+        "weights": ["400", "600", "700"],
+        "usage": "H1, H2, Dashboard Titles, Thesis Titles, Hero Text"
+      },
+      "body": {
+        "family": "IBM Plex Sans, sans-serif",
+        "weights": ["400", "500", "600"],
+        "usage": "Main application text, paragraphs, buttons, general UI"
+      },
+      "metadata": {
+        "family": "IBM Plex Mono, monospace",
+        "weights": ["400", "500"],
+        "usage": "Dates, Thesis IDs, Author tags, precise data points"
+      }
+    },
+    "hierarchy_rules": {
+      "h1": "text-4xl sm:text-5xl tracking-tight leading-none font-serif text-ink-black",
+      "h2": "text-2xl sm:text-3xl tracking-tight leading-snug font-serif text-ink-black",
+      "h3": "text-xl sm:text-2xl font-serif text-ink-black",
+      "body": "text-base leading-relaxed font-sans text-graphite",
+      "metadata": "text-sm tracking-wide font-mono uppercase text-slate-500",
+      "special_instruction": "Never use 'Inter' for headings. Never use bold sans-serif for massive titles. Let the Serif carry the emotional weight."
+    }
+  },
+  "color_palette": {
+    "backgrounds": {
+      "page_base": "#FDFCF8",
+      "card_surface": "#FFFFFF",
+      "header_surface": "rgba(255, 255, 255, 0.9)",
+      "accent_surface": "#F3F1E7"
+    },
+    "text": {
+      "primary": "#111111",
+      "secondary": "#4B4B4B",
+      "muted": "#737373",
+      "inverse": "#FFFFFF"
+    },
+    "borders": {
+      "default": "rgba(17, 17, 17, 0.12)",
+      "strong": "rgba(17, 17, 17, 0.8)"
+    },
+    "brand": {
+      "primary": "#0F172A",
+      "primary_hover": "#1E293B",
+      "accent": "#B45309"
+    },
+    "status_badges": {
+      "Draft": {
+        "bg": "#F1F5F9",
+        "text": "#475569",
+        "border": "#CBD5E1"
+      },
+      "Submitted": {
+        "bg": "#EFF6FF",
+        "text": "#1D4ED8",
+        "border": "#BFDBFE"
+      },
+      "Reviewing": {
+        "bg": "#FDF4FF",
+        "text": "#86198F",
+        "border": "#F5D0FE"
+      },
+      "Approved": {
+        "bg": "#F0FDF4",
+        "text": "#15803D",
+        "border": "#BBF7D0"
+      },
+      "Rejected": {
+        "bg": "#FEF2F2",
+        "text": "#B91C1C",
+        "border": "#FECACA"
+      },
+      "Changes_Requested": {
+        "bg": "#FFFBEB",
+        "text": "#B45309",
+        "border": "#FDE68A"
+      },
+      "Published": {
+        "bg": "#111111",
+        "text": "#FDFCF8",
+        "border": "#111111"
+      }
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Generous. Use p-6, p-8, and p-12 extensively. Do not cramp elements.",
+    "dashboard_grid": "Grid Borders pattern. Use `grid` with `border-collapse` style logic. Expose the skeleton. Dashboards should feel like highly structured archival catalogs.",
+    "public_repository_grid": "Bento Grid Protocol. Asymmetrical grid mixing span-2 and span-1 cards for visual interest. Mix large featured theses with standard list items.",
+    "container_max_width": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "border_radius": "Strictly minimal. Use `rounded-none` or `rounded-sm` (2px-4px max) to maintain the print/editorial rigidity. Avoid pill-shaped buttons or deeply rounded cards."
+  },
+  "component_guidelines": {
+    "buttons": "Sharp edges (rounded-none). Solid dark background for primary, 1px solid border for secondary. Add 'group' classes to animate an arrow or underline on hover.",
+    "cards": "White background, `border border-black/10`, no drop shadows. On hover, apply a slight `-translate-y-0.5` and `shadow-[4px_4px_0px_0px_rgba(17,17,17,1)]` for a brutalist/editorial pop.",
+    "forms": "Inputs must have a 1px solid border. Label text should be Serif or Mono. Use generous padding inside inputs (h-12). Focus state: `ring-1 ring-black border-black`.",
+    "navigation": "Sticky top bar with glassmorphism over the paper background: `backdrop-blur-md bg-[#FDFCF8]/80 border-b border-black/10`. Minimalist, text-heavy links.",
+    "icons": "Use `lucide-react`. Use stroke-width=1.5 for a delicate, refined look matching the serif typography. Preferred icons: book-open, archive, feather, file-text, library.",
+    "modals": "Use Shadcn Dialog. Custom styling: Sharp corners, white background, distinct border, close button in corner. Overlay should be `bg-black/40 backdrop-blur-sm`."
+  },
+  "image_urls": [
+    {
+      "category": "hero_background",
+      "url": "https://images.pexels.com/photos/16091031/pexels-photo-16091031.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Contemporary library with towering metal bookcases. Use for the public repository hero section with a black/30 overlay.",
+      "placement_instructions": "Place in the hero section of the public page. Must have `bg-black/40` or `bg-white/60` gradient overlay so the serif typography over it remains highly legible."
+    },
+    {
+      "category": "auth_side_image",
+      "url": "https://images.pexels.com/photos/6549588/pexels-photo-6549588.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Student deeply engaged in study at a library desk.",
+      "placement_instructions": "Use as the split-screen image on the Login/Signup page. Apply a subtle grayscale or sepia filter (`grayscale opacity-90`) to fit the scholarly mood."
+    },
+    {
+      "category": "decorative_glass_library",
+      "url": "https://images.unsplash.com/photo-1684403798268-83df9a9b2b6d?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "description": "Inside of a large building with a glass roof.",
+      "placement_instructions": "Can be used for an 'About' section or as a banner image in the student dashboard."
+    }
+  ],
+  "instructions_to_main_agent": {
+    "global_css": "Add `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');` to `index.css`. Set body font to IBM Plex Sans and `bg-[#FDFCF8]`.",
+    "paper_texture": "In index.css, add a class `.paper-noise { background-image: url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E\"); }` and apply it to the main layout wrapper.",
+    "tech_stack": "Use React (.jsx files, NO TYPESCRIPT), Tailwind CSS, Shadcn UI, and lucide-react. Ensure `react-router-dom` is used for routing.",
+    "testing": "CRITICAL: You MUST add `data-testid` to all interactive and key informational elements (buttons, inputs, status badges, links). Use kebab-case and role-based naming (e.g., `data-testid=\"login-submit-button\"`, `data-testid=\"thesis-status-badge\"`).",
+    "ui_components": "When installing Shadcn components (button, card, dialog, input, label, badge, table, tabs), override the default border-radius in tailwind.config.js to `radius: '0rem'` or `0.125rem` to enforce the editorial sharp look."
+  },
+  "design_system_rules": {
+    "anti_patterns": [
+      "Do NOT use purple or teal gradients.",
+      "Do NOT use 'Inter' for headings. Only use it for body if IBM Plex Sans fails.",
+      "Do NOT center everything. Use left-alignment for scholarly text.",
+      "Do NOT use soft, large drop shadows. Use hard 1px borders or solid black offset shadows.",
+      "Do NOT use generic rounded buttons. Use sharp or minimally rounded edges.",
+      "Do NOT use placeholders like via.placeholder.com. Use the provided image_urls."
+    ]
+  }
+}

@@ -51,7 +51,15 @@ Source: User-provided SDD and SRS PDFs (ThesisVault project).
 
 ## Test Status
 - **Iteration 1** (Jan 2026, FastAPI): 100% backend (33/33) + 100% frontend flows.
-- **Iteration 2** (Jan 2026, MERN migration): 100% backend (36/36) + 100% frontend flows. Zero regressions — frontend unchanged, API contract preserved exactly. Test file: `/app/backend/tests/test_thesisvault_mern.py`. Report: `/app/test_reports/iteration_2.json`.
+- **Iteration 2** (Jan 2026, MERN migration): 100% backend (36/36) + 100% frontend flows.
+- **Iteration 3** (Jan 2026, PDFs in DB): 48/50 — exposed a real schema bug (`file_path` still in Mongoose schema).
+- **Iteration 4** (Jan 2026, bug fix): **50/50 backend** (14 migration + 36 regression) + frontend unchanged. Reports: `/app/test_reports/iteration_{3,4}.json`.
+
+## File storage
+As of iteration 3, PDFs are stored **inside MongoDB** (`thesis_files` collection, `Buffer` field, 15 MB cap under BSON limit). No filesystem, no S3. Legacy disk files are auto-migrated + cleaned on boot.
+
+## Repo hygiene
+`/app/.gitignore` excludes Emergent-preview-only files (`backend/server.py`, `backend/requirements.txt`, `backend/uploads/`) — so the repo a user checks out / deploys is **pure JavaScript / MERN**. `docker-compose.yml` at the repo root starts mongo + backend + frontend with one `docker compose up`.
 
 ## Backlog / Future Enhancements
 ### P1

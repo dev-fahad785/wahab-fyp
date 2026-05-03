@@ -1,22 +1,20 @@
 "use strict";
 const path = require("path");
-const fs = require("fs");
 const express = require("express");
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const Thesis = require("../models/Thesis");
+const ThesisFile = require("../models/ThesisFile");
 const Review = require("../models/Review");
 const { authRequired, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "/app/backend/uploads";
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const MAX_PDF_BYTES = 15 * 1024 * 1024; // 15 MB — MongoDB BSON doc limit is 16 MB
 
-// All files land in memory, we validate + move manually so every thesis_id.pdf is canonical.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: MAX_PDF_BYTES },
   fileFilter: (_req, file, cb) => {
     const ok =
       file.mimetype === "application/pdf" ||
@@ -44,10 +42,8 @@ function parseKeywords(raw) {
 
 function thesisView(doc) {
   if (!doc) return doc;
-  const obj = doc.toJSON ? doc.toJSON() : { ...doc };
-  delete obj._id;
-  const { file_path, ...rest } = obj;
-  rest.has_file = Boolean(file_path);
+  const { _id, file_path, __v, ...rest } = doc;
+  rest.has_file = Boolean(rest.file_name) && Boolean(rest.file_size);
   return rest;
 }
 
@@ -55,9 +51,28 @@ async function persistPdf(thesisId, file) {
   if (!file) throw Object.assign(new Error("File required"), { status: 400 });
   if (!file.buffer || file.buffer.length === 0)
     throw Object.assign(new Error("Uploaded file is empty"), { status: 400 });
-  const dest = path.join(UPLOAD_DIR, `${thesisId}.pdf`);
-  fs.writeFileSync(dest, file.buffer);
-  return { file_name: file.originalname || `${thesisId}.pdf`, file_path: dest, file_size: file.buffer.length };
+
+  const ts = nowIso();
+  await ThesisFile.findOneAndUpdate(
+    { thesis_id: thesisId },
+    {
+      $set: {
+        thesis_id: thesisId,
+        filename: file.originalname || `${thesisId}.pdf`,
+        content_type: file.mimetype || "application/pdf",
+        size: file.buffer.length,
+        data: file.buffer,
+        updated_at: ts,
+      },
+      $setOnInsert: { created_at: ts },
+    },
+    { upsert: true, new: true }
+  );
+
+  return {
+    file_name: file.originalname || `${thesisId}.pdf`,
+    file_size: file.buffer.length,
+  };
 }
 
 // ---------- Create (student) ----------
@@ -87,7 +102,6 @@ router.post(
         supervisor_id: null,
         supervisor_name: null,
         file_name: null,
-        file_path: null,
         file_size: null,
         created_at: nowIso(),
         updated_at: nowIso(),
@@ -177,7 +191,7 @@ router.post("/:id/submit", authRequired, requireRole("student"), async (req, res
   const doc = await Thesis.findOne({ id: req.params.id }).lean();
   if (!doc) return res.status(404).json({ detail: "Thesis not found" });
   if (doc.student_id !== req.user.id) return res.status(403).json({ detail: "Not your thesis" });
-  if (!doc.file_path) return res.status(400).json({ detail: "Upload a PDF before submitting" });
+  if (!doc.file_name) return res.status(400).json({ detail: "Upload a PDF before submitting" });
   if (!["draft", "changes", "rejected"].includes(doc.status))
     return res.status(400).json({ detail: "Already submitted" });
   const ts = nowIso();

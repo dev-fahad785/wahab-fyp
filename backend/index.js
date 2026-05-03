@@ -7,6 +7,7 @@ const cors = require("cors");
 
 const { connectDB } = require("./src/db");
 const { seedUsers } = require("./src/seed");
+const { migrateDiskFilesToDb } = require("./src/migrate");
 
 const authRoutes = require("./src/routes/auth");
 const thesesRoutes = require("./src/routes/theses");
@@ -55,6 +56,7 @@ app.use((err, _req, res, _next) => {
 async function main() {
   await connectDB();
   await seedUsers();
+  await migrateDiskFilesToDb();
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[thesisvault] MERN backend listening on 0.0.0.0:${PORT}`);
   });

@@ -18,8 +18,9 @@ Source: User-provided SDD and SRS PDFs (ThesisVault project).
 
 ## Architecture
 - **Frontend** (`/app/frontend`): React 19, react-router-dom 7, axios, Tailwind CSS, lucide-react icons. Pages: PublicRepository, Login, Register, StudentDashboard, ThesisForm (create/edit), SupervisorDashboard, AdminDashboard. AuthContext stores user + token.
-- **Backend** (`/app/backend`): FastAPI, Motor (async MongoDB), PyJWT, bcrypt, python-multipart. Single-file `server.py` (~540 lines) + `auth.py`. Uploads stored at `/app/backend/uploads/{thesis_id}.pdf`.
-- **Database**: MongoDB collections — `users`, `theses`, `reviews`. Indexes: users.email (unique), theses.student_id, theses.status, reviews.thesis_id.
+- **Backend** (`/app/backend`): **Node.js + Express + Mongoose** — entry `index.js` → `src/{db,seed}.js` + `src/routes/{auth,theses,public,files}.js` + `src/models/{User,Thesis,Review}.js` + `src/middleware/auth.js`. Uses `bcryptjs`, `jsonwebtoken`, `multer` (memoryStorage, 50MB, PDF-only), `cors`, `dotenv`, `uuid`. Uploads stored at `/app/backend/uploads/{thesis_id}.pdf`.
+- **Preview harness**: `server.py` (~130 LoC) is a FastAPI ASGI proxy that spawns Node on `127.0.0.1:8002` and forwards every request. Required only because the Emergent preview supervisor hardcodes `uvicorn server:app` — drop this file on native Node deploy.
+- **Database**: MongoDB collections — `users`, `theses`, `reviews`. Indexes: users.email (unique), theses.id/status/student_id, reviews.thesis_id. Data was preserved across the FastAPI→Node migration.
 - **Status state machine**: draft → submitted → (approved | rejected | changes). approved ↔ published (admin).
 
 ## User Personas
@@ -49,7 +50,8 @@ Source: User-provided SDD and SRS PDFs (ThesisVault project).
 ✅ Sample data seeded: 3 published theses, 1 draft, 1 awaiting review under student demo
 
 ## Test Status
-Iteration 1 (Jan 2026): **100% backend (33/33)**, **100% frontend functional flows**. Test file: `/app/backend/tests/test_thesisvault_api.py`. Report: `/app/test_reports/iteration_1.json`.
+- **Iteration 1** (Jan 2026, FastAPI): 100% backend (33/33) + 100% frontend flows.
+- **Iteration 2** (Jan 2026, MERN migration): 100% backend (36/36) + 100% frontend flows. Zero regressions — frontend unchanged, API contract preserved exactly. Test file: `/app/backend/tests/test_thesisvault_mern.py`. Report: `/app/test_reports/iteration_2.json`.
 
 ## Backlog / Future Enhancements
 ### P1

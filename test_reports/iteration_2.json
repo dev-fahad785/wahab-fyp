@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 2 end-to-end testing of ThesisVault after FastAPI->Node/Express (MERN) migration. Backend pytest suite (36 tests, 100% pass) covers: stack marker returning {stack:'MERN'}, full auth (login for all 3 demo roles, /me, register student/supervisor, admin self-register blocked 422, duplicate 400), student workflow (create draft with PDF via multer memoryStorage, update, submit), supervisor workflow (/submitted listing + approve decision creates Review record, no _id leak), role guards (student 403 on /submitted,/approved,/publish,/review; supervisor 403 on /publish), admin flow (/approved, /publish sets published_at, /unpublish reverts), public search (q= regex match, year= filter, empty result), file download (public when published, 401 when unpublished without token, 200 with Bearer, 200 with ?token= query fallback). Seeded-data preservation verified (>=3 published, student owns >=3 theses from prior Python-era DB). Frontend Playwright smoke covers public search (urban -> 1 card), demo-fill login for student/supervisor/admin, student dashboard (8 thesis rows with status badges), supervisor review modal (approve/reject/changes decisions + submit), admin publish/unpublish toggle (verified 4 unpublish became 3 after click, then re-published), register page role select restricted to student/supervisor only. Proxy (uvicorn 8001 -> Node 8002) is fully transparent — no errors, PDFs stream intact through the shim (%PDF header preserved).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_thesisvault_mern.py",
+    "/app/test_reports/pytest/mern_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py proxy shim: httpx.AsyncClient is instantiated per-request — for higher throughput reuse a single client via lifespan (minor).",
+    "CORS_ORIGINS='*' combined with credentials:true in /app/backend/index.js is silently ignored by browsers. Set explicit origins in production.",
+    "JWT_SECRET is committed in /app/backend/.env (expected for preview) but ensure it is rotated before real deploy.",
+    "/api/files/{id}?token= query fallback exposes JWT in browser history and nginx access logs. Acceptable for MVP anchor downloads; consider short-lived signed URLs later.",
+    "GET /api/theses/submitted returns submitted+changes+rejected+approved — route name is misleading; consider ?status= filter or splitting.",
+    "No brute-force lockout / rate limit on /api/auth/login (playbook hint mentions 5-fail lockout). Not blocking for this iteration but recommended.",
+    "Thesis.js and User.js Mongoose models are loaded via require; make sure unique indexes on User.email and Thesis.id are defined in schemas (verify once).",
+    "Seed is idempotent (checks existing + refreshes password if env changed) — good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_thesisvault_mern.py"
+  ],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "100% (all 5 demo flows + register restriction verified)"},
+  "test_credentials": "Used /app/memory/test_credentials.md as-is: admin@thesisvault.io/Admin@12345, supervisor@thesisvault.io/Super@12345, student@thesisvault.io/Student@12345 — all working. Prior-era users authenticate (DB preserved, idempotent seed).",
+  "seed_data_creation": "Pytest session created TEST_-prefixed transient users (via register) and one TEST_MERN Thesis draft (created, updated, submitted, approved, published, unpublished throughout suite). These remain in Mongo after the run (no admin delete endpoint). Recommend cleanup utility or TEST_ filter in admin views.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Regression suite: /app/backend/tests/test_thesisvault_mern.py. pytest -v --junitxml=/app/test_reports/pytest/mern_results.xml. Node backend is at /app/backend/index.js listening on 127.0.0.1:8002; /app/backend/server.py is a pure HTTP proxy spawned by supervisor's uvicorn on 8001. External preview URL: https://doc-driven-dev-7.preview.emergentagent.com. Frontend testids used: demo-fill-{admin|supervisor|student}, login-submit-button, logout-button, public-search-form, create-thesis-button, student-thesis-list, student-thesis-{id}, thesis-status-{status}, supervisor-review-{id}, review-modal, review-decision-{approve|reject|changes}, review-submit-button, admin-publish-{id}, admin-unpublish-{id}. Search form submit button does NOT have type='submit' — use Enter or locate by text 'Search'. No app bugs found.",
+  "rca of the issue": "N/A — no bugs. MERN migration is functionally identical to the prior Python/FastAPI iteration: same error field 'detail', same JSON shapes, same URLs, same file-download semantics including ?token= fallback. Proxy adds one hop with no observable latency issues in tests."
+}

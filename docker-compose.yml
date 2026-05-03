@@ -1,0 +1,70 @@
+version: "3.9"
+
+# One-command local development:
+#   docker compose up
+#
+# Starts: mongo (27017) + backend (8002) + frontend (3000).
+# Data is persisted in the named volume `thesisvault-mongo`.
+# Uploaded PDFs live inside MongoDB (thesis_files collection) — no volume needed for them.
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: thesisvault-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - thesisvault-mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    image: node:20-alpine
+    container_name: thesisvault-backend
+    working_dir: /srv/app
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: "8002"
+      MONGO_URL: "mongodb://mongo:27017"
+      DB_NAME: "thesisvault"
+      CORS_ORIGINS: "http://localhost:3000"
+      JWT_SECRET: "change-me-to-a-64-char-random-hex"
+      ADMIN_EMAIL: "admin@thesisvault.io"
+      ADMIN_PASSWORD: "Admin@12345"
+      SUPERVISOR_EMAIL: "supervisor@thesisvault.io"
+      SUPERVISOR_PASSWORD: "Super@12345"
+      STUDENT_EMAIL: "student@thesisvault.io"
+      STUDENT_PASSWORD: "Student@12345"
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend:/srv/app
+      - /srv/app/node_modules
+    command: sh -c "yarn install && yarn start"
+
+  frontend:
+    image: node:20-alpine
+    container_name: thesisvault-frontend
+    working_dir: /srv/app
+    depends_on:
+      - backend
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      WDS_SOCKET_PORT: "0"
+      REACT_APP_BACKEND_URL: "http://localhost:8002"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/srv/app
+      - /srv/app/node_modules
+    command: sh -c "yarn install && yarn start"
+
+volumes:
+  thesisvault-mongo:

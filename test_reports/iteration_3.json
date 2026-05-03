@@ -1,0 +1,66 @@
+{
+  "summary": "Iteration 3 regression for PDF-in-DB migration. Wrote a new pytest module (test_pdf_in_db_migration.py, 14 tests) that verifies disk folder is empty, no thesis has legacy file_path with a real value, thesis_files row count >= theses with file_name, every published thesis has a matching DB file row, upload->DB->download round-trip preserves bytes (+Content-Length matches DB size), update upserts (still exactly one row per thesis_id), has_file flag driven by file_name+file_size, 15MB BSON guard returns 413, role guards intact, demo accounts authenticate. 12/14 passed. 2 FAILED — both reveal one real bug: the Mongoose Thesis schema still declares `file_path: {type: String, default: null}` AND its toJSON transform still computes `has_file = Boolean(file_path)` (now permanently false). Result: every freshly created thesis is persisted with `file_path: null` in Mongo, which contradicts the migration's contract of REMOVING the field. The migrate script's `$ne: null` filter does not catch these. Existing iteration-2 suite still 36/36. Backend listens correctly, downloads stream %PDF- bytes from Mongo, disk uploads/ folder remains empty (no .pdf written there during the test).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/theses (POST) and Thesis Mongoose schema",
+        "issue": "src/models/Thesis.js still declares `file_path: { type: String, default: null }`. Every newly-created thesis is persisted with `file_path: null` in MongoDB, contradicting the DB-storage migration goal of removing the field. db.theses.find({file_path:{$exists:true}}).count() == 2 right now (one was created during this run). Migration's `$ne: null` filter cannot clean these up.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "Thesis.js toJSON transform",
+        "issue": "thesisSchema.set('toJSON', ...) still computes `has_file = Boolean(file_path)`. With file_path now permanently null, this would yield has_file=false everywhere. Currently dormant because routes use lean()+thesisView(), but a footgun if any code path ever calls .toJSON()/JSON.stringify on a Mongoose doc.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "src/migrate.js",
+        "issue": "Cleanup query uses `file_path: { $exists: true, $ne: null }`. After the schema fix above, also run a one-shot `$unset: { file_path: '' }` for any docs with `file_path: null` to remove the stale key from existing records (or change schema strict mode + run a doc rewrite)."
+      },
+      {
+        "endpoint": "src/routes/theses.js -> thesisView",
+        "issue": "Strips file_path on output but the field is still being PERSISTED. UI is unaffected, but `db.theses.find({file_path:{$exists:true}}).count()` !== 0 is a regression vs spec."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pdf_in_db_migration.py",
+    "/app/backend/tests/test_thesisvault_mern.py",
+    "/app/test_reports/pytest/iter3_results.xml",
+    "/app/test_reports/pytest/iter3_regression.xml"
+  ],
+  "action_items": [
+    "Remove `file_path` from /app/backend/src/models/Thesis.js schema definition entirely.",
+    "Update Thesis.js toJSON transform: `has_file = Boolean(ret.file_name) && Boolean(ret.file_size)` (remove file_path reference).",
+    "Add a one-shot cleanup in migrate.js (or a new migration step) to `$unset` `file_path` on any thesis where `file_path` exists (including null) so `db.theses.find({file_path:{$exists:true}}).count() === 0`.",
+    "After fix, re-run /app/backend/tests/test_pdf_in_db_migration.py — the two failing tests should turn green."
+  ],
+  "critical_code_review_comments": [
+    "Thesis.js schema vs route logic out of sync — schema defines file_path with default:null while routes/theses.js#thesisView strips it. Pick one source of truth (schema).",
+    "Thesis.js toJSON transform contradicts route projection (uses Boolean(file_path) for has_file vs route's file_name+file_size). Same logic should live in one place.",
+    "ThesisFile schema delete `data` in toJSON is good (no Buffer leak in JSON), but `Content-Length` header math relies on `buf.length`; consider also setting `ETag` + `Cache-Control: private, no-store` for unpublished downloads to prevent shared caches from holding draft PDFs.",
+    "MAX_PDF_BYTES (15MB) is hard-coded in routes/theses.js — move to env (e.g. PDF_MAX_BYTES) for ops tunability, especially if the BSON cap ever changes (16MB + GridFS migration).",
+    "Storing PDFs as Buffer inside a regular collection caps each file at <16MB and inflates working-set memory at scale. For real production, migrate to GridFS — but acceptable for MVP per spec.",
+    "migrate.js logs only when migrated||missing > 0 (good). Consider adding a final assertion log: `[migrate] orphans (file_path stale): ${count}` so operators can spot the very issue we're flagging here.",
+    "/api/files/:id loads the entire Buffer into memory and res.send()s it — fine at 15MB ceiling, but stream from a cursor if size cap ever lifts."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pdf_in_db_migration.py (new)"
+  ],
+  "success_rate": {
+    "backend": "iter3 module 12/14 (85.7%); iter2 regression 36/36 (100%); combined 48/50 (96%)",
+    "frontend": "not tested (backend-only request)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md as-is — admin/supervisor/student demo accounts all authenticated successfully and returned valid JWTs.",
+  "seed_data_creation": "Test run created two TEST_ITER3 draft theses (`TEST_ITER3 <hex>` titles) under student@thesisvault.io with PDF rows in thesis_files. One older 'DB Storage Test' draft also remains (created by an earlier manual session). These can be cleaned via Mongo or admin tooling. The thesis_files documents and Buffer payloads are well-formed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run order: `pytest /app/backend/tests/test_pdf_in_db_migration.py -v` (iteration-3 specific) and `pytest /app/backend/tests/test_thesisvault_mern.py -v` (full regression). The two FAILED tests in test_pdf_in_db_migration.py both assert the absence of `file_path` on thesis docs in Mongo — they will turn green once Thesis.js schema is purged of file_path AND a one-shot `$unset file_path` is run on existing docs. After that, run db.theses.countDocuments({file_path:{$exists:true}}) and assert 0. Backend node process listens on 127.0.0.1:8002 behind uvicorn shim 8001, external preview URL https://doc-driven-dev-7.preview.emergentagent.com. Mongo: mongodb://localhost:27017/test_database; collections theses, thesis_files, users, reviews. Disk uploads dir /app/backend/uploads stays empty (gitignored).",
+  "rca of the issue": "Root cause: incomplete migration — only the route layer (routes/theses.js + persistPdf) was updated to bypass file_path; the Mongoose model (src/models/Thesis.js) was NOT updated. The schema still declares `file_path: { type: String, default: null }`, so Mongoose silently injects file_path=null into every new thesis document at create() time. Reproduction: 1) login as student, 2) POST /api/theses with PDF, 3) `db.theses.findOne({id:<new_id>})` -> shows `file_path: null`. Mitigation: (a) Delete the file_path schema field from Thesis.js. (b) Update the toJSON transform to derive has_file from file_name+file_size. (c) Add `await Thesis.updateMany({file_path:{$exists:true}}, {$unset:{file_path:''}})` to migrate.js (or run once manually). (d) Re-run the 2 failing tests to confirm."
+}

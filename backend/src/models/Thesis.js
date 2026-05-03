@@ -21,7 +21,6 @@ const thesisSchema = new mongoose.Schema(
     supervisor_id: { type: String, default: null },
     supervisor_name: { type: String, default: null },
     file_name: { type: String, default: null },
-    file_path: { type: String, default: null },
     file_size: { type: Number, default: null },
     created_at: { type: String, required: true },
     updated_at: { type: String, required: true },
@@ -31,11 +30,11 @@ const thesisSchema = new mongoose.Schema(
   { collection: "theses", versionKey: false, strict: false }
 );
 
-// Public projection (strip _id & file_path, expose has_file)
+// Public projection (strip _id, expose has_file from file_name+file_size)
 thesisSchema.set("toJSON", {
   transform: (_doc, ret) => {
-    const { _id, file_path, ...rest } = ret;
-    rest.has_file = Boolean(file_path);
+    const { _id, ...rest } = ret;
+    rest.has_file = Boolean(rest.file_name) && Boolean(rest.file_size);
     return rest;
   },
 });

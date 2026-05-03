@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 4 regression after Thesis schema bug fix. Re-ran /app/backend/tests/test_pdf_in_db_migration.py — all 14/14 PASS (previously-failing test_no_thesis_has_file_path and test_has_file_flag_driven_by_name_and_size are now green). Full MERN regression /app/backend/tests/test_thesisvault_mern.py — 36/36 PASS. Live Mongo verification: db.theses.countDocuments({file_path:{$exists:true}}) === 0 across all 14 (now 11 after cleanup) docs. End-to-end smoke: logged in as student, POST /api/theses with PDF, inspected new doc in Mongo directly — 'file_path' in doc === false, only file_name+file_size persisted, API response carries has_file:true without file_path. Backend restart log showed `[migrate] unset legacy file_path on 3 thesis doc(s)` confirming the second-pass $unset ran. Bug resolved.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pdf_in_db_migration.py",
+    "/app/backend/tests/test_thesisvault_mern.py",
+    "/app/test_reports/pytest/iter4_regression.xml",
+    "/app/test_reports/pytest/iter4_mern.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Thesis.js toJSON transform and routes/theses.js thesisView now agree on has_file = Boolean(file_name) && Boolean(file_size) — good single-source contract.",
+    "migrate.js second pass correctly uses {file_path:{$exists:true}} (not $ne:null), so it catches both legacy-with-path and legacy-with-null docs. This is idempotent and safe on every boot.",
+    "Schema is strict:false (intentional, for forward compat), so even if a rogue code path ever tried to set file_path again, Mongoose would allow it — consider tightening to strict:'throw' in a future hardening pass, or add a startup assertion `db.theses.countDocuments({file_path:{$exists:true}}) === 0`.",
+    "Still holds from iter3: consider moving MAX_PDF_BYTES (15MB) into env and migrating to GridFS if the 16MB BSON ceiling ever becomes real. Not blocking for MVP."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "iter4 migration module 14/14 (100%); mern regression 36/36 (100%); combined 50/50 (100%)",
+    "frontend": "not tested (backend-only request)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md demo accounts (admin/supervisor/student@thesisvault.io). All three authenticate and return JWTs with access_token/token_type/user fields.",
+  "seed_data_creation": "Cleaned up 4 stale test theses (TEST_ITER3 x2, DB Storage Test x1, ITER4_PDF_CHECK x1) and their thesis_files rows. Collection `theses` now at 11 docs (original seed set). No leftover TEST data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Thesis schema migration to DB-stored PDFs is fully verified. If further work touches Thesis model or migrate.js, re-run both test files. Backend runs node at 127.0.0.1:8002 behind shim 8001, external URL from frontend/.env REACT_APP_BACKEND_URL. Mongo: mongodb://localhost:27017/test_database. Upload field name in multipart POST /api/theses is `file` (not `pdf`).",
+  "rca of the issue": "FIX VERIFIED. Root cause (iter3): Mongoose Thesis schema still declared `file_path: {type:String, default:null}` and toJSON used Boolean(file_path) for has_file. Fix applied (iter4): (a) file_path removed from schema fields entirely, (b) toJSON transform now derives has_file from file_name+file_size, (c) migrate.js second-pass $unset file_path on ANY doc with the field regardless of value. Evidence of fix: startup log `[migrate] unset legacy file_path on 3 thesis doc(s)`, live Mongo count `{file_path:{$exists:true}} === 0`, fresh POST /api/theses doc inspected directly in Mongo has no file_path key, previously-failing 2 pytest tests now pass."
+}
